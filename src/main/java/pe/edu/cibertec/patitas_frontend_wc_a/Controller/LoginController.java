@@ -1,7 +1,5 @@
 package pe.edu.cibertec.patitas_frontend_wc_a.Controller;
 
-
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -9,12 +7,11 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.web.reactive.function.client.WebClient;
 import pe.edu.cibertec.patitas_frontend_wc_a.DTO.LoginRequestDTO;
 import pe.edu.cibertec.patitas_frontend_wc_a.DTO.LoginResponseDTO;
 import pe.edu.cibertec.patitas_frontend_wc_a.viewmodel.LoginModel;
-
+import reactor.core.publisher.Mono;
 
 @Controller
 @RequestMapping("/login")
@@ -49,10 +46,17 @@ public class LoginController {
 
         try {
 
-            // Invocar servicio de autenticación
-            String endpoint = "http://localhost:8081/autenticacion/login";
+            // invocar servicio de autenticación
             LoginRequestDTO loginRequestDTO = new LoginRequestDTO(tipoDocumento, numeroDocumento, password);
-            LoginResponseDTO loginResponseDTO = restTemplate.postForObject(endpoint, loginRequestDTO, LoginResponseDTO.class);
+
+            Mono<LoginResponseDTO> monoLoginResponseDTO = webClientAutenticacion.post()
+                    .uri("http://localhost:8081/autenticacion/login")
+                    .body(Mono.just(loginRequestDTO), LoginRequestDTO.class)
+                    .retrieve()
+                    .bodyToMono(LoginResponseDTO.class);
+
+            // recuperar resultado modo bloqueante (Sincrónico)
+            LoginResponseDTO loginResponseDTO = monoLoginResponseDTO.block();
 
             if (loginResponseDTO.codigo().equals("00")){
 
