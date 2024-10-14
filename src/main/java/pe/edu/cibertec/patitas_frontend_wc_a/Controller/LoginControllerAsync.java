@@ -3,13 +3,16 @@ package pe.edu.cibertec.patitas_frontend_wc_a.Controller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.function.client.WebClient;
+import pe.edu.cibertec.patitas_frontend_wc_a.DTO.SignOutRequestDTO;
+import pe.edu.cibertec.patitas_frontend_wc_a.DTO.SignOutResponseDTO;
 import pe.edu.cibertec.patitas_frontend_wc_a.DTO.LoginRequestDTO;
 import pe.edu.cibertec.patitas_frontend_wc_a.DTO.LoginResponseDTO;
 import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping("/login")
-@CrossOrigin(origins = "http://localhost:5178")
+@CrossOrigin(origins = "http://localhost:5179")
+
 public class LoginControllerAsync {
 
     @Autowired
@@ -54,4 +57,27 @@ public class LoginControllerAsync {
 
     }
 
+    @PostMapping("out-async")
+    public Mono<SignOutResponseDTO> CerrarSesion(@RequestBody SignOutRequestDTO signOutRequestDTO) {
+        try {
+            return webClientAutenticacion.post()
+                    .uri("/signout")
+                    .body(Mono.just(signOutRequestDTO), SignOutRequestDTO.class)
+                    .retrieve()
+                    .bodyToMono(SignOutResponseDTO.class)
+                    .flatMap(signOutResponseDTO -> {
+                        if(signOutResponseDTO.codigo()==null){
+                            return Mono.just(new SignOutResponseDTO("99", "Error"));
+                        }
+                        return Mono.just(new SignOutResponseDTO("00", signOutResponseDTO.mensaje()));
+
+                    });
+
+
+        }catch (Exception e){
+            System.out.println(e.getMessage());
+            return Mono.just(new SignOutResponseDTO("99", "Error en el Servicio"));
+        }
+
+    }
 }
