@@ -1,22 +1,27 @@
 package pe.edu.cibertec.patitas_frontend_wc_a.Controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.function.client.WebClient;
-import pe.edu.cibertec.patitas_frontend_wc_a.DTO.SignOutRequestDTO;
-import pe.edu.cibertec.patitas_frontend_wc_a.DTO.SignOutResponseDTO;
+import pe.edu.cibertec.patitas_frontend_wc_a.cliente.AutenticacionCliente;
 import pe.edu.cibertec.patitas_frontend_wc_a.DTO.LoginRequestDTO;
 import pe.edu.cibertec.patitas_frontend_wc_a.DTO.LoginResponseDTO;
+import pe.edu.cibertec.patitas_frontend_wc_a.DTO.SignOutRequestDTO;
+import pe.edu.cibertec.patitas_frontend_wc_a.DTO.SignOutResponseDTO;
 import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping("/login")
-@CrossOrigin(origins = "http://localhost:5179")
+@CrossOrigin(origins = "http://localhost:5175")
 
 public class LoginControllerAsync {
 
     @Autowired
     WebClient webClientAutenticacion;
+
+    @Autowired
+    AutenticacionCliente autenticacionCliente;
 
     @PostMapping("/autenticar-async")
     public Mono<LoginResponseDTO> autenticar(@RequestBody LoginRequestDTO loginRequestDTO) {
@@ -57,7 +62,7 @@ public class LoginControllerAsync {
 
     }
 
-    @PostMapping("out-async")
+    @PostMapping("/out-async")
     public Mono<SignOutResponseDTO> CerrarSesion(@RequestBody SignOutRequestDTO signOutRequestDTO) {
         try {
             return webClientAutenticacion.post()
@@ -65,19 +70,44 @@ public class LoginControllerAsync {
                     .body(Mono.just(signOutRequestDTO), SignOutRequestDTO.class)
                     .retrieve()
                     .bodyToMono(SignOutResponseDTO.class)
-                    .flatMap(signOutResponseDTO -> {
-                        if(signOutResponseDTO.codigo()==null){
-                            return Mono.just(new SignOutResponseDTO("99", "Error"));
+                    .flatMap(response -> {
+                        if (response.codigo().equals("00")) {
+                            return Mono.just(new SignOutResponseDTO("00", "Cierre de sesión exitoso"));
+                        } else {
+                            return Mono.just(new SignOutResponseDTO("02", "Error al cerrar sesión"));
                         }
-                        return Mono.just(new SignOutResponseDTO("00", signOutResponseDTO.mensaje()));
-
                     });
 
 
         }catch (Exception e){
-            System.out.println(e.getMessage());
-            return Mono.just(new SignOutResponseDTO("99", "Error en el Servicio"));
+            return Mono.just(new SignOutResponseDTO("99", "Error al cerrar sesión"));
         }
 
+    }
+
+    @PostMapping("/out-feing")
+    public Mono<SignOutResponseDTO> cerrarSesionFeign(@RequestBody SignOutRequestDTO signOutRequestDTO) {
+        try {
+
+            ResponseEntity<SignOutResponseDTO> responseEntity = autenticacionCliente.logout(signOutRequestDTO);
+
+            if (responseEntity.getStatusCode().is2xxSuccessful()) {
+
+                SignOutResponseDTO signOutResponseDTO = responseEntity.getBody();
+
+                if(signOutResponseDTO.codigo().equals("00")){
+                    return Mono.just(new SignOutResponseDTO("00", "Cierre de sesión exitoso"));
+                }else {
+                    return Mono.just(new SignOutResponseDTO("02", "Error al cerrar sesión"));
+                }
+
+
+            } else {
+                return Mono.just(new SignOutResponseDTO("99", "Error: Ocurrió un problema no identificado"));
+            }
+
+        } catch (Exception e) {
+            return Mono.just(new SignOutResponseDTO("99", "Error en el proceso de cierre de sesión"));
+        }
     }
 }

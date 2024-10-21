@@ -15,9 +15,9 @@ import java.util.concurrent.TimeUnit;
 public class WebClientConfig {
 
     HttpClient httpClient = HttpClient.create()
-            .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 100) // timeout de conexión
-            .responseTimeout(Duration.ofSeconds(1)) // timeout para obtener el total de la respuesta
-            .doOnConnected(conn -> conn.addHandlerLast(new ReadTimeoutHandler(1, TimeUnit.SECONDS))); // timeout para la recepción de cada paquete
+            .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10000) // timeout de conexión
+            .responseTimeout(Duration.ofSeconds(10)) // timeout para obtener el total de la respuesta
+            .doOnConnected(conn -> conn.addHandlerLast(new ReadTimeoutHandler(10, TimeUnit.SECONDS))); // timeout para la recepción de cada paquete
 
     @Bean
     public WebClient webClientAutenticacion(WebClient.Builder builder) {
